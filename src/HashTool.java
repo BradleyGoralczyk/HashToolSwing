@@ -2,24 +2,103 @@ import javax.swing.*;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 
-public class HashTool extends JFrame
+public class HashTool
 {
+    JFrame mMainFrame;
+
+    JTextField mTextFieldCRC32;
+    JTextField mTextFieldMD5;
+    JTextField mTextFieldSHA1;
+    JTextField mTextFieldPiki;
+
     public HashTool()
     {
-        setTitle("Hash Tool");
-        getContentPane().setLayout(null);
-        setBounds(100, 100, 180, 140);
+        mMainFrame = new JFrame("Hash Tool");
+        mMainFrame.setLayout(new FlowLayout());
+        mMainFrame.setBounds(100, 100, 640, 480);
 
-        JButton b = makeButton();
-        b.addActionListener(new FileChooserActionListener(this));
+        mMainFrame.setJMenuBar(makeMenuBar());
 
-        add(b);
-        setVisible(true);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        mTextFieldCRC32 = new JTextField("", 32);
+        mTextFieldCRC32.setEditable(false);
+        JLabel labelCRC32 = new JLabel("CRC32: ");
+        labelCRC32.setPreferredSize(new Dimension(100, labelCRC32.getPreferredSize().height));
+        mMainFrame.add(labelCRC32);
+        mMainFrame.add(mTextFieldCRC32);
+
+        mTextFieldMD5 = new JTextField("", 32);
+        mTextFieldMD5.setEditable(false);
+        JLabel labelMD5 = new JLabel("MD5: ");
+        labelMD5.setPreferredSize(new Dimension(100, labelMD5.getPreferredSize().height));
+        mMainFrame.add(labelMD5);
+        mMainFrame.add(mTextFieldMD5);
+
+        mTextFieldSHA1 = new JTextField("", 32);
+        mTextFieldSHA1.setEditable(false);
+        JLabel labelSHA1 = new JLabel("SHA1: ");
+        labelSHA1.setPreferredSize(new Dimension(100, labelSHA1.getPreferredSize().height));
+        mMainFrame.add(labelSHA1);
+        mMainFrame.add(mTextFieldSHA1);
+
+        mTextFieldPiki = new JTextField("", 32);
+        mTextFieldPiki.setEditable(false);
+        JLabel labelPiki = new JLabel("Piki: ");
+        labelPiki.setPreferredSize(new Dimension(100, labelPiki.getPreferredSize().height));
+        mMainFrame.add(labelPiki);
+        mMainFrame.add(mTextFieldPiki);
+//
+//        Container contentPane = mMainFrame.getContentPane();
+//        contentPane.setLayout(new FlowLayout());
+//        contentPane.add();
+//        contentPane.add();
+
+//        mMainFrame.pack();
+        mMainFrame.setVisible(true);
+        mMainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+
+    private JMenuBar makeMenuBar()
+    {
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(makeFileMenu());
+        return menuBar;
+    }
+
+    private JMenu makeFileMenu()
+    {
+        JMenu menu = new JMenu("File");
+        menu.add(makeOpenMenuItem());
+        return menu;
+    }
+
+    private JMenuItem makeOpenMenuItem()
+    {
+        final JFileChooser fileChooser = new JFileChooser();
+        final JMenuItem menuItem = new JMenuItem("Open");
+
+        menuItem.addActionListener((ActionEvent event) -> {
+            if (fileChooser.showOpenDialog(mMainFrame) != JFileChooser.APPROVE_OPTION)
+            {
+                System.out.println("Open command cancelled by user." + '\n');
+                return;
+            }
+            final File file = fileChooser.getSelectedFile();
+            System.out.println("Opening: " + file.getName() + ".");
+            try (FileInputStream fis = new FileInputStream(file))
+            {
+                final HashMD5 hashMD5 = new HashMD5();
+                mTextFieldMD5.setText(hashMD5.calcHash(fis));
+//                final HashPiki pikiHash = new HashPiki();
+//                mTextFieldPiki.setText(pikiHash.calcHash(fis));
+            } catch (IOException e)
+            {
+                System.out.println("Failed to open " + file.getName() + ".");
+            }
+        });
+        return menuItem;
     }
 
     private JButton makeButton()
@@ -34,36 +113,5 @@ public class HashTool extends JFrame
     {
         // Swing calls must be run by the event dispatching thread.
         SwingUtilities.invokeAndWait(HashTool::new);
-    }
-}
-
-class FileChooserActionListener implements ActionListener
-{
-    private final Component mParent;
-    private final JFileChooser mFileChooser = new JFileChooser();
-    private InputStream mInputStream;
-
-    public FileChooserActionListener(Component parent)
-    {
-        this.mParent = parent;
-    }
-
-    public void actionPerformed(ActionEvent event)
-    {
-        if (mFileChooser.showOpenDialog(mParent) != JFileChooser.APPROVE_OPTION)
-        {
-            System.out.println("Open command cancelled by user." + '\n');
-            return;
-        }
-        final File file = mFileChooser.getSelectedFile();
-        System.out.println("Opening: " + file.getName() + ".");
-        try (FileReader fr = new FileReader(file); BufferedReader br = new BufferedReader(fr))
-        {
-            System.out.println(br.readLine());
-        }
-        catch (IOException e)
-        {
-            System.out.println("Failed to open " + file.getName() + ".");
-        }
     }
 }
