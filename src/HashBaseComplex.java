@@ -8,7 +8,7 @@ public abstract class HashBaseComplex implements HashInterface
 {
     protected ByteOrder mByteOrder;
 
-    HashBaseComplex(ByteOrder byteOrder)
+    public HashBaseComplex(ByteOrder byteOrder)
     {
         mByteOrder = byteOrder;
     }

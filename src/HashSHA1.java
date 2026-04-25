@@ -1,6 +1,7 @@
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
+// https://en.wikipedia.org/wiki/SHA-1#SHA-1_pseudocode
 public class HashSHA1 extends HashBaseComplex
 {
     private int h0 = 0x67452301;

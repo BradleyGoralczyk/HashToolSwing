@@ -1,3 +1,5 @@
+// https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks#CRC-32_example
+// Specific table from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
 public class HashCRC32 extends HashBaseSimple
 {
     private static final int[] CRC32Table = {

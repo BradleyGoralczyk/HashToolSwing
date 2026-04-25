@@ -1,5 +1,4 @@
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.*;
@@ -13,14 +12,22 @@ public class HashTool
     JTextField mTextFieldSHA1;
     JTextField mTextFieldPiki;
 
+    public static void main(String[] args) throws InvocationTargetException, InterruptedException
+    {
+        // Swing calls must be run by the event dispatching thread.
+        SwingUtilities.invokeAndWait(HashTool::new);
+    }
+
     public HashTool()
     {
         mMainFrame = new JFrame("Hash Tool");
         mMainFrame.setLayout(new FlowLayout());
-        mMainFrame.setBounds(100, 100, 640, 480);
+        // I can't get the vertical layout to look good without a
+        // FlowLayout, but that falls apart when the window is resized.
+        mMainFrame.setBounds(100, 100, 450, 170);
+        mMainFrame.setResizable(false);
 
         mMainFrame.setJMenuBar(makeMenuBar());
-
         mTextFieldCRC32 = makeLabeledFieldHBox("CRC32:");
         mTextFieldMD5   = makeLabeledFieldHBox("MD5:");
         mTextFieldSHA1  = makeLabeledFieldHBox("SHA1:");
@@ -28,6 +35,60 @@ public class HashTool
 
         mMainFrame.setVisible(true);
         mMainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+
+    private JMenuBar makeMenuBar()
+    {
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(makeFileMenu());
+        menuBar.add(makeHelpMenu());
+        return menuBar;
+    }
+
+    private JMenu makeFileMenu()
+    {
+        JMenu menu = new JMenu("File");
+        menu.add(makeOpenMenuItem());
+        return menu;
+    }
+
+    private JMenuItem makeOpenMenuItem()
+    {
+        final JFileChooser fileChooser = new JFileChooser();
+
+        final JMenuItem menuItem = new JMenuItem("Open");
+        menuItem.addActionListener((ActionEvent event) -> {
+            if (fileChooser.showOpenDialog(mMainFrame) != JFileChooser.APPROVE_OPTION)
+            {
+                System.out.println("Open command cancelled by user.");
+                return;
+            }
+            final File file = fileChooser.getSelectedFile();
+            System.out.println("Opening: " + file.getName() + ".");
+
+            // This is probably faster for large files, right?  Not even going to benchmark this.
+            (new Thread(new RunnableHashJob(file, new HashCRC32(), mTextFieldCRC32))).start();
+            (new Thread(new RunnableHashJob(file, new HashMD5()  , mTextFieldMD5  ))).start();
+            (new Thread(new RunnableHashJob(file, new HashSHA1() , mTextFieldSHA1 ))).start();
+            (new Thread(new RunnableHashJob(file, new HashPiki() , mTextFieldPiki ))).start();
+        });
+        return menuItem;
+    }
+
+    private JMenu makeHelpMenu()
+    {
+        JMenu menu = new JMenu("Help");
+        menu.add(makeAboutMenuItem());
+        return menu;
+    }
+
+    private JMenuItem makeAboutMenuItem()
+    {
+        final JMenuItem menuItem = new JMenuItem("About");
+        menuItem.addActionListener((ActionEvent event) -> {
+            JOptionPane.showMessageDialog(mMainFrame, "  This program was created by Bradley Goralczyk\nand Jakub Niedzielski for ECE 251 (Object Oriented\n    Programming) at Purdue University Northwest.");
+        });
+        return menuItem;
     }
 
     private JTextField makeLabeledFieldHBox(String labelText)
@@ -45,60 +106,12 @@ public class HashTool
         return textField;
     }
 
-    private JMenuBar makeMenuBar()
-    {
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.add(makeFileMenu());
-        return menuBar;
-    }
-
-    private JMenu makeFileMenu()
-    {
-        JMenu menu = new JMenu("File");
-        menu.add(makeOpenMenuItem());
-        return menu;
-    }
-
-    private JMenuItem makeOpenMenuItem()
-    {
-        final JFileChooser fileChooser = new JFileChooser();
-        final JMenuItem menuItem = new JMenuItem("Open");
-
-        menuItem.addActionListener((ActionEvent event) -> {
-            if (fileChooser.showOpenDialog(mMainFrame) != JFileChooser.APPROVE_OPTION)
-            {
-                System.out.println("Open command cancelled by user.");
-                return;
-            }
-            final File file = fileChooser.getSelectedFile();
-            System.out.println("Opening: " + file.getName() + ".");
-
-            mTextFieldCRC32.setText("Now loading...");
-            mTextFieldMD5.setText("Now loading...");
-            mTextFieldSHA1.setText("Now loading...");
-            mTextFieldPiki.setText("Now loading...");
-
-            // This is probably faster for large files, right?  Not even going to benchmark this.
-            (new Thread(new RunnableHashJob(file, new HashCRC32(), mTextFieldCRC32))).start();
-            (new Thread(new RunnableHashJob(file, new HashMD5(), mTextFieldMD5))).start();
-            (new Thread(new RunnableHashJob(file, new HashSHA1(), mTextFieldSHA1))).start();
-            (new Thread(new RunnableHashJob(file, new HashPiki(), mTextFieldPiki))).start();
-        });
-        return menuItem;
-    }
-
     private JButton makeButton()
     {
         final JButton b = new JButton();
         b.setText("Click me!");
         b.setBounds(40, 40, 100, 30);
         return b;
-    }
-
-    public static void main(String[] args) throws InvocationTargetException, InterruptedException
-    {
-        // Swing calls must be run by the event dispatching thread.
-        SwingUtilities.invokeAndWait(HashTool::new);
     }
 }
 
@@ -117,12 +130,13 @@ class RunnableHashJob implements Runnable
 
     public void run()
     {
+        mTextField.setText("Now hashing...");
         try (FileInputStream fis = new FileInputStream(mFile))
         {
             mHashInterface.calcHash(fis);
             mTextField.setText(mHashInterface.toString());
         }
-        catch (IOException e)
+        catch (IOException exception)
         {
             // Who cares
         }
