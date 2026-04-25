@@ -4,14 +4,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 
 public class HashMD5 implements HashInterface
 {
-    private int a0 = 0x67452301;
-    private int b0 = 0xefcdab89;
-    private int c0 = 0x98badcfe;
-    private int d0 = 0x10325476;
-
     // Specifies the per-round shift amounts
     private static final int[] s = {
             7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
@@ -40,6 +37,11 @@ public class HashMD5 implements HashInterface
             0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
     };
 
+    private int a0 = 0x67452301;
+    private int b0 = 0xefcdab89;
+    private int c0 = 0x98badcfe;
+    private int d0 = 0x10325476;
+
     private void processChunk(IntBuffer M)
     {
         int A = a0, B = b0, C = c0, D = d0;
@@ -65,6 +67,7 @@ public class HashMD5 implements HashInterface
                 F = C ^ (B | ~D);
                 g = (7 * i) % 16;
             }
+
             F = F + A + K[i] + M.get(g);
             A = D;
             D = C;
@@ -81,38 +84,45 @@ public class HashMD5 implements HashInterface
     public String calcHash(InputStream is) throws IOException
     {
         byte[] buffer = new byte[512];
-        IntBuffer chunk = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
-
+        IntBuffer chunkView = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
         long originalLength = 0;
+
         while (true)
         {
             int readSize = is.readNBytes(buffer, 0, buffer.length);
             originalLength += readSize;
-            if (readSize < buffer.length)
+
+            // Another chunk bytes the dust.
+            if (readSize == buffer.length)
             {
-                // End of stream reached.  Append 1 to end of bitstream.
-                buffer[readSize++] = (byte)0x80;
-
-                // Handle edge case wherein there is not enough space to write the original length bytes
-                if (readSize >= buffer.length - Long.BYTES)
-                {
-                    for (int i = readSize; i < buffer.length; ++i)
-                        buffer[i] = 0;
-                    processChunk(chunk);
-                    readSize = 0;
-                }
-
-                for (int i = readSize; i < buffer.length - Long.BYTES; ++i)
-                    buffer[i] = 0;
-                ByteBuffer originalLengthBits = ByteBuffer.allocate(Long.BYTES).order(ByteOrder.LITTLE_ENDIAN).putLong(originalLength);
-                System.arraycopy(originalLengthBits.array(), 0, buffer, buffer.length - Long.BYTES, Long.BYTES);
-                processChunk(chunk);
-
-                break;
+                processChunk(chunkView);
+                continue;
             }
-            processChunk(chunk);
+
+            // End of stream reached.  Append 1 to end of bitstream.
+            buffer[readSize++] = (byte)0x80;
+
+            // Handle edge case wherein there is not enough space to write the original length bytes.
+            if (readSize >= buffer.length - Long.BYTES)
+            {
+                for (int i = readSize; i < buffer.length; ++i)
+                    buffer[i] = 0;
+                processChunk(chunkView);
+                readSize = 0;
+            }
+
+            // Fill the rest of the buffer with zeroes followed by the 64-bit original size (in BITS).
+            for (int i = readSize; i < buffer.length - Long.BYTES; ++i)
+                buffer[i] = 0;
+            System.arraycopy(ByteBuffer.allocate(Long.BYTES).order(ByteOrder.LITTLE_ENDIAN).putLong(originalLength * Byte.SIZE).array(), 0, buffer, buffer.length - Long.BYTES, Long.BYTES);
+
+            // Process the final chunk
+            processChunk(chunkView);
+            break;
         }
 
-        return String.format("%08x%08x%08x%08x", a0, b0, c0, d0);
+
+        ByteBuffer digest = ByteBuffer.allocate(Integer.BYTES * 4).order(ByteOrder.LITTLE_ENDIAN).putInt(a0).putInt(b0).putInt(c0).putInt(d0);
+        return HexFormat.of().formatHex(digest.array());
     }
 }
