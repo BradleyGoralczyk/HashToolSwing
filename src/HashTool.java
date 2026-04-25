@@ -87,10 +87,19 @@ public class HashTool
             }
             final File file = fileChooser.getSelectedFile();
             System.out.println("Opening: " + file.getName() + ".");
-            try (FileInputStream fis = new FileInputStream(file))
+
+            try
             {
-                final HashMD5 hashMD5 = new HashMD5();
-                mTextFieldMD5.setText(hashMD5.calcHash(fis));
+                new Thread()
+                new Thread(() throws IOException -> {
+                    FileInputStream fis = new FileInputStream(file)
+                });
+//                final HashCRC32 hashCRC32 = new HashCRC32();
+//                mTextFieldCRC32.setText(hashCRC32.calcHash(fis));
+//                final HashMD5 hashMD5 = new HashMD5();
+//                mTextFieldMD5.setText(hashMD5.calcHash(fis));
+                final HashSHA1 hashSHA1 = new HashSHA1();
+                mTextFieldSHA1.setText(hashSHA1.calcHash(fis));
 //                final HashPiki pikiHash = new HashPiki();
 //                mTextFieldPiki.setText(pikiHash.calcHash(fis));
             } catch (IOException e)
