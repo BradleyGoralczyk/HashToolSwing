@@ -83,7 +83,7 @@ public class HashMD5 implements HashInterface
     // https://en.wikipedia.org/wiki/MD5#Pseudocode
     public String calcHash(InputStream is) throws IOException
     {
-        byte[] buffer = new byte[512];
+        byte[] buffer = new byte[512 / Byte.SIZE];
         IntBuffer chunkView = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
         long originalLength = 0;
 
