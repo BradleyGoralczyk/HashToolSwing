@@ -1,9 +1,4 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.IntBuffer;
-import java.util.Arrays;
-
-public class HashCRC32 implements HashInterface
+public class HashCRC32 extends HashBaseSimple
 {
     private static final int[] CRC32Table = {
             0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
@@ -72,11 +67,17 @@ public class HashCRC32 implements HashInterface
             0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
     };
 
-    public String calcHash(InputStream is) throws IOException
+    private int digest = ~0;
+
+    protected void processChunk(byte[] chunk, int length)
     {
-        int digest = ~0;
-        for (int b; (b = is.read()) != -1;)
-            digest = (digest >>> 8) ^ CRC32Table[(digest ^ b) & 0xff];
+        for (int i = 0; i < length; ++i)
+            digest = (digest >>> 8) ^ CRC32Table[(digest ^ chunk[i]) & 0xff];
+    }
+
+    @Override
+    public String toString()
+    {
         return Integer.toHexString(~digest);
     }
 }

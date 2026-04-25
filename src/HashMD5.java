@@ -1,20 +1,17 @@
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
-import java.nio.LongBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 
-public class HashMD5 implements HashInterface
+// https://en.wikipedia.org/wiki/MD5#Pseudocode
+public class HashMD5 extends HashBaseComplex
 {
     // Specifies the per-round shift amounts
     private static final int[] s = {
-            7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
-            5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
-            4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
-            6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,
+             7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+             5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+             4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+             6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,
     };
 
     // Use binary integer part of the sines of integers (Radians) as constants:
@@ -42,7 +39,13 @@ public class HashMD5 implements HashInterface
     private int c0 = 0x98badcfe;
     private int d0 = 0x10325476;
 
-    private void processChunk(IntBuffer M)
+    public HashMD5()
+    {
+        super(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    @Override
+    protected void processChunk(IntBuffer M)
     {
         int A = a0, B = b0, C = c0, D = d0;
         for (int i = 0; i < 64; ++i)
@@ -80,49 +83,10 @@ public class HashMD5 implements HashInterface
         d0 += D;
     }
 
-    // https://en.wikipedia.org/wiki/MD5#Pseudocode
-    public String calcHash(InputStream is) throws IOException
+    @Override
+    public String toString()
     {
-        byte[] buffer = new byte[512 / Byte.SIZE];
-        IntBuffer chunkView = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
-        long originalLength = 0;
-
-        while (true)
-        {
-            int readSize = is.readNBytes(buffer, 0, buffer.length);
-            originalLength += readSize;
-
-            // Another chunk bytes the dust.
-            if (readSize == buffer.length)
-            {
-                processChunk(chunkView);
-                continue;
-            }
-
-            // End of stream reached.  Append 1 to end of bitstream.
-            buffer[readSize++] = (byte)0x80;
-
-            // Handle edge case wherein there is not enough space to write the original length bytes.
-            if (readSize >= buffer.length - Long.BYTES)
-            {
-                for (int i = readSize; i < buffer.length; ++i)
-                    buffer[i] = 0;
-                processChunk(chunkView);
-                readSize = 0;
-            }
-
-            // Fill the rest of the buffer with zeroes followed by the 64-bit original size (in BITS).
-            for (int i = readSize; i < buffer.length - Long.BYTES; ++i)
-                buffer[i] = 0;
-            System.arraycopy(ByteBuffer.allocate(Long.BYTES).order(ByteOrder.LITTLE_ENDIAN).putLong(originalLength * Byte.SIZE).array(), 0, buffer, buffer.length - Long.BYTES, Long.BYTES);
-
-            // Process the final chunk
-            processChunk(chunkView);
-            break;
-        }
-
-
-        ByteBuffer digest = ByteBuffer.allocate(Integer.BYTES * 4).order(ByteOrder.LITTLE_ENDIAN).putInt(a0).putInt(b0).putInt(c0).putInt(d0);
+        ByteBuffer digest = ByteBuffer.allocate(Integer.BYTES * 4).order(mByteOrder).putInt(a0).putInt(b0).putInt(c0).putInt(d0);
         return HexFormat.of().formatHex(digest.array());
     }
 }

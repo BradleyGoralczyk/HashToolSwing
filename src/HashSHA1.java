@@ -1,10 +1,7 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
-public class HashSHA1 implements HashInterface
+public class HashSHA1 extends HashBaseComplex
 {
     private int h0 = 0x67452301;
     private int h1 = 0xEFCDAB89;
@@ -12,7 +9,12 @@ public class HashSHA1 implements HashInterface
     private int h3 = 0x10325476;
     private int h4 = 0xC3D2E1F0;
 
-    private void processChunk(IntBuffer M)
+    public HashSHA1()
+    {
+        super(ByteOrder.BIG_ENDIAN);
+    }
+
+    protected void processChunk(IntBuffer M)
     {
         int[] W = new int[80];
         for (int i = 0; i < 16; ++i)
@@ -65,45 +67,8 @@ public class HashSHA1 implements HashInterface
         h4 += e;
     }
 
-    public String calcHash(InputStream is) throws IOException
+    public String toString()
     {
-        byte[] buffer = new byte[512 / Byte.SIZE];
-        IntBuffer chunkView = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN).asIntBuffer();
-        long originalLength = 0;
-
-        while (true)
-        {
-            int readSize = is.readNBytes(buffer, 0, buffer.length);
-            originalLength += readSize;
-
-            // Another chunk bytes the dust.
-            if (readSize == buffer.length)
-            {
-                processChunk(chunkView);
-                continue;
-            }
-
-            // End of stream reached.  Append 1 to end of bitstream.
-            buffer[readSize++] = (byte) 0x80;
-
-            // Handle edge case wherein there is not enough space to write the original length bytes.
-            if (readSize >= buffer.length - Long.BYTES)
-            {
-                for (int i = readSize; i < buffer.length; ++i)
-                    buffer[i] = 0;
-                processChunk(chunkView);
-                readSize = 0;
-            }
-
-            // Fill the rest of the buffer with zeroes followed by the 64-bit original size (in BITS).
-            for (int i = readSize; i < buffer.length - Long.BYTES; ++i)
-                buffer[i] = 0;
-            System.arraycopy(ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN).putLong(originalLength * Byte.SIZE).array(), 0, buffer, buffer.length - Long.BYTES, Long.BYTES);
-
-            // Process the final chunk
-            processChunk(chunkView);
-            break;
-        }
-        return String.format("%08X%08X%08X%08X%08X", h0, h1, h2, h3, h4);
+        return String.format("%08x%08x%08x%08x%08x", h0, h1, h2, h3, h4);
     }
 }

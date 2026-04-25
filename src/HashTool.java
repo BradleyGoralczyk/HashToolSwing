@@ -8,7 +8,6 @@ import java.lang.reflect.InvocationTargetException;
 public class HashTool
 {
     JFrame mMainFrame;
-
     JTextField mTextFieldCRC32;
     JTextField mTextFieldMD5;
     JTextField mTextFieldSHA1;
@@ -22,42 +21,28 @@ public class HashTool
 
         mMainFrame.setJMenuBar(makeMenuBar());
 
-        mTextFieldCRC32 = new JTextField("", 32);
-        mTextFieldCRC32.setEditable(false);
-        JLabel labelCRC32 = new JLabel("CRC32: ");
-        labelCRC32.setPreferredSize(new Dimension(100, labelCRC32.getPreferredSize().height));
-        mMainFrame.add(labelCRC32);
-        mMainFrame.add(mTextFieldCRC32);
+        mTextFieldCRC32 = makeLabeledFieldHBox("CRC32:");
+        mTextFieldMD5   = makeLabeledFieldHBox("MD5:");
+        mTextFieldSHA1  = makeLabeledFieldHBox("SHA1:");
+        mTextFieldPiki  = makeLabeledFieldHBox("Pikmin:");
 
-        mTextFieldMD5 = new JTextField("", 32);
-        mTextFieldMD5.setEditable(false);
-        JLabel labelMD5 = new JLabel("MD5: ");
-        labelMD5.setPreferredSize(new Dimension(100, labelMD5.getPreferredSize().height));
-        mMainFrame.add(labelMD5);
-        mMainFrame.add(mTextFieldMD5);
-
-        mTextFieldSHA1 = new JTextField("", 32);
-        mTextFieldSHA1.setEditable(false);
-        JLabel labelSHA1 = new JLabel("SHA1: ");
-        labelSHA1.setPreferredSize(new Dimension(100, labelSHA1.getPreferredSize().height));
-        mMainFrame.add(labelSHA1);
-        mMainFrame.add(mTextFieldSHA1);
-
-        mTextFieldPiki = new JTextField("", 32);
-        mTextFieldPiki.setEditable(false);
-        JLabel labelPiki = new JLabel("Piki: ");
-        labelPiki.setPreferredSize(new Dimension(100, labelPiki.getPreferredSize().height));
-        mMainFrame.add(labelPiki);
-        mMainFrame.add(mTextFieldPiki);
-//
-//        Container contentPane = mMainFrame.getContentPane();
-//        contentPane.setLayout(new FlowLayout());
-//        contentPane.add();
-//        contentPane.add();
-
-//        mMainFrame.pack();
         mMainFrame.setVisible(true);
         mMainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    }
+
+    private JTextField makeLabeledFieldHBox(String labelText)
+    {
+        JTextField textField = new JTextField("", 32);
+        textField.setEditable(false);
+        JLabel label = new JLabel(labelText);
+        label.setPreferredSize(new Dimension(100, label.getPreferredSize().height));
+
+        Box box = Box.createHorizontalBox();
+        box.add(label);
+        box.add(textField);
+        mMainFrame.add(box);
+
+        return textField;
     }
 
     private JMenuBar makeMenuBar()
@@ -82,30 +67,22 @@ public class HashTool
         menuItem.addActionListener((ActionEvent event) -> {
             if (fileChooser.showOpenDialog(mMainFrame) != JFileChooser.APPROVE_OPTION)
             {
-                System.out.println("Open command cancelled by user." + '\n');
+                System.out.println("Open command cancelled by user.");
                 return;
             }
             final File file = fileChooser.getSelectedFile();
             System.out.println("Opening: " + file.getName() + ".");
 
-            try
-            {
-                new Thread()
-                new Thread(() throws IOException -> {
-                    FileInputStream fis = new FileInputStream(file)
-                });
-//                final HashCRC32 hashCRC32 = new HashCRC32();
-//                mTextFieldCRC32.setText(hashCRC32.calcHash(fis));
-//                final HashMD5 hashMD5 = new HashMD5();
-//                mTextFieldMD5.setText(hashMD5.calcHash(fis));
-                final HashSHA1 hashSHA1 = new HashSHA1();
-                mTextFieldSHA1.setText(hashSHA1.calcHash(fis));
-//                final HashPiki pikiHash = new HashPiki();
-//                mTextFieldPiki.setText(pikiHash.calcHash(fis));
-            } catch (IOException e)
-            {
-                System.out.println("Failed to open " + file.getName() + ".");
-            }
+            mTextFieldCRC32.setText("Now loading...");
+            mTextFieldMD5.setText("Now loading...");
+            mTextFieldSHA1.setText("Now loading...");
+            mTextFieldPiki.setText("Now loading...");
+
+            // This is probably faster for large files, right?  Not even going to benchmark this.
+            (new Thread(new RunnableHashJob(file, new HashCRC32(), mTextFieldCRC32))).start();
+            (new Thread(new RunnableHashJob(file, new HashMD5(), mTextFieldMD5))).start();
+            (new Thread(new RunnableHashJob(file, new HashSHA1(), mTextFieldSHA1))).start();
+            (new Thread(new RunnableHashJob(file, new HashPiki(), mTextFieldPiki))).start();
         });
         return menuItem;
     }
@@ -122,5 +99,32 @@ public class HashTool
     {
         // Swing calls must be run by the event dispatching thread.
         SwingUtilities.invokeAndWait(HashTool::new);
+    }
+}
+
+class RunnableHashJob implements Runnable
+{
+    private final File mFile;
+    private final HashInterface mHashInterface;
+    private final JTextField mTextField;
+
+    public RunnableHashJob(File file, HashInterface hashInterface, JTextField textField)
+    {
+        mFile = file;
+        mHashInterface = hashInterface;
+        mTextField = textField;
+    }
+
+    public void run()
+    {
+        try (FileInputStream fis = new FileInputStream(mFile))
+        {
+            mHashInterface.calcHash(fis);
+            mTextField.setText(mHashInterface.toString());
+        }
+        catch (IOException e)
+        {
+            // Who cares
+        }
     }
 }
