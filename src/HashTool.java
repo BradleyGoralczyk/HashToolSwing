@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 public class HashTool
 {
     JFrame mMainFrame;
+    JLabel mLabelFileName;
     JTextField mTextFieldCRC32;
     JTextField mTextFieldMD5;
     JTextField mTextFieldSHA1;
@@ -24,10 +25,11 @@ public class HashTool
         mMainFrame.setLayout(new FlowLayout());
         // I can't get the vertical layout to look good without a
         // FlowLayout, but that falls apart when the window is resized.
-        mMainFrame.setBounds(100, 100, 480, 180);
+        mMainFrame.setBounds(100, 100, 480, 240);
         mMainFrame.setResizable(false);
 
         mMainFrame.setJMenuBar(makeMenuBar());
+        mLabelFileName  = makeFileNameLabel();
         mTextFieldCRC32 = makeLabeledFieldHBox("CRC32:");
         mTextFieldMD5   = makeLabeledFieldHBox("MD5:");
         mTextFieldSHA1  = makeLabeledFieldHBox("SHA1:");
@@ -65,6 +67,7 @@ public class HashTool
             }
             final File file = fileChooser.getSelectedFile();
             System.out.println("Opening: " + file.getName() + ".");
+            mLabelFileName.setText(file.getPath());
 
             // This is probably faster for large files, right?  Not even going to benchmark this.
             (new Thread(new RunnableHashJob(file, new HashCRC32(), mTextFieldCRC32))).start();
@@ -89,6 +92,14 @@ public class HashTool
             JOptionPane.showMessageDialog(mMainFrame, "  This program was created by Bradley Goralczyk\nand Jakub Niedzielski for ECE 251 (Object Oriented\n    Programming) at Purdue University Northwest.");
         });
         return menuItem;
+    }
+
+    private JLabel makeFileNameLabel()
+    {
+        JLabel label = new JLabel("Select File > Open to hash a file.");
+        label.setPreferredSize(new Dimension(400, label.getPreferredSize().height));
+        mMainFrame.add(label);
+        return label;
     }
 
     private JTextField makeLabeledFieldHBox(String labelText)
