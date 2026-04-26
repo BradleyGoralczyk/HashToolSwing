@@ -139,6 +139,7 @@ class RunnableHashJob implements Runnable
         mTextField = textField;
     }
 
+    @Override
     public void run()
     {
         mTextField.setText("Now hashing...");
