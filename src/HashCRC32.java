@@ -80,6 +80,6 @@ public class HashCRC32 extends HashBaseSimple
     @Override
     public String toString()
     {
-        return Integer.toHexString(~digest);
+        return String.format("%08x", ~digest);
     }
 }

@@ -24,7 +24,7 @@ public class HashTool
         mMainFrame.setLayout(new FlowLayout());
         // I can't get the vertical layout to look good without a
         // FlowLayout, but that falls apart when the window is resized.
-        mMainFrame.setBounds(100, 100, 450, 170);
+        mMainFrame.setBounds(100, 100, 480, 180);
         mMainFrame.setResizable(false);
 
         mMainFrame.setJMenuBar(makeMenuBar());
